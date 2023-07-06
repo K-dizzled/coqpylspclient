@@ -1,6 +1,6 @@
 from __future__ import print_function
 import json
-import re
+import logging
 from pylspclient import lsp_structs
 import threading
 
@@ -22,14 +22,15 @@ class MyEncoder(json.JSONEncoder):
 
 class JsonRpcEndpoint(object):
     '''
-    Thread safe JSON RPC endpoint implementation. Responsible to recieve and send JSON RPC messages, as described in the
+    Thread safe JSON RPC endpoint implementation. Responsible to receive and send JSON RPC messages, as described in the
     protocol. More information can be found: https://www.jsonrpc.org/
     '''
     def __init__(self, stdin, stdout):
         self.stdin = stdin
         self.stdout = stdout
         self.read_lock = threading.Lock() 
-        self.write_lock = threading.Lock() 
+        self.write_lock = threading.Lock()
+        self.message_size = None
 
     @staticmethod
     def __add_header(json_string):
@@ -48,21 +49,28 @@ class JsonRpcEndpoint(object):
 
         :param dict message: The message to send.            
         '''
-        json_string = json.dumps(message, cls=MyEncoder)
-        jsonrpc_req = self.__add_header(json_string)
-        with self.write_lock:
-            self.stdin.write(jsonrpc_req.encode())
-            self.stdin.flush()
+        try:
+            json_string = json.dumps(message, cls=MyEncoder)
+            jsonrpc_req = self.__add_header(json_string)
+            with self.write_lock:
+                self.stdin.write(jsonrpc_req.encode())
+                self.stdin.flush()
+        except BrokenPipeError as e:
+            logging.error(e)
 
 
     def recv_response(self):
         '''        
-        Recives a message.
+        Receives a message.
 
         :return: a message
         '''
         with self.read_lock:
-            message_size = None
+            if self.message_size:
+                if self.message_size.isdigit():
+                    self.message_size = int(self.message_size)
+                else:
+                    raise lsp_structs.ResponseError(lsp_structs.ErrorCodes.ParseError, "Bad header: size is not int")
             while True:
                 #read header
                 line = self.stdout.readline()
@@ -81,14 +89,17 @@ class JsonRpcEndpoint(object):
                     line = line[len(LEN_HEADER):]
                     if not line.isdigit():
                         raise lsp_structs.ResponseError(lsp_structs.ErrorCodes.ParseError, "Bad header: size is not int")
-                    message_size = int(line)
+                    self.message_size = int(line)
                 elif line.startswith(TYPE_HEADER):
                     # nothing todo with type for now.
                     pass
                 else:
-                    raise lsp_structs.ResponseError(lsp_structs.ErrorCodes.ParseError, "Bad header: unkown header")
-            if not message_size:
+                    line = line.split(LEN_HEADER)
+                    if len(line) == 2: self.message_size = line[1]
+                    raise lsp_structs.ResponseError(lsp_structs.ErrorCodes.ParseError, "Bad header: unknown header")
+            if not self.message_size:
                 raise lsp_structs.ResponseError(lsp_structs.ErrorCodes.ParseError, "Bad header: missing size")
 
-            jsonrpc_res = self.stdout.read(message_size).decode("utf-8")
+            jsonrpc_res = self.stdout.read(self.message_size).decode("utf-8")
+            self.message_size = None
             return json.loads(jsonrpc_res)

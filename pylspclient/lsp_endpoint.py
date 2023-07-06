@@ -1,6 +1,6 @@
 from __future__ import print_function
 import threading
-import collections
+import logging
 from pylspclient import lsp_structs
 
 
@@ -13,8 +13,10 @@ class LspEndpoint(threading.Thread):
         self.event_dict = {}
         self.response_dict = {}
         self.next_id = 0
-        self._timeout = timeout
+        self.completed_operation = False
+        self.timeout = timeout
         self.shutdown_flag = False
+        self.diagnostics = {}
 
 
     def handle_result(self, rpc_id, result, error):
@@ -35,6 +37,7 @@ class LspEndpoint(threading.Thread):
                 jsonrpc_message = self.json_rpc_endpoint.recv_response()
                 if jsonrpc_message is None:
                     print("server quit")
+                    self.shutdown_flag = True
                     break
                 method = jsonrpc_message.get("method")
                 result = jsonrpc_message.get("result")
@@ -52,8 +55,15 @@ class LspEndpoint(threading.Thread):
                     else:
                         # a call for notify
                         if method not in self.notify_callbacks:
-                            # Have nothing to do with this.
-                            print("Notify method not found: {method}.".format(method=method))
+                            # Default method
+                            logging.debug("received message:", params)
+                            if 'diagnostics' in params:
+                                for diagnostic in params['diagnostics']:
+                                    if params['uri'] not in self.diagnostics:
+                                        self.diagnostics[params['uri']] = []
+                                    self.diagnostics[params['uri']].append(lsp_structs.Diagnostic(**diagnostic))
+                                # Marks didOpen operation as completed
+                                self.completed_operation = True
                         else:
                             self.notify_callbacks[method](params)
                 else:
@@ -93,8 +103,7 @@ class LspEndpoint(threading.Thread):
         self.send_message(method_name, kwargs, current_id)
         if self.shutdown_flag:
             return None
-
-        if not cond.wait(timeout=self._timeout):
+        if not cond.wait(timeout=self.timeout):
             raise TimeoutError()
         cond.release()
 
@@ -106,4 +115,5 @@ class LspEndpoint(threading.Thread):
 
 
     def send_notification(self, method_name, **kwargs):
+        self.completed_operation = False
         self.send_message(method_name, kwargs)

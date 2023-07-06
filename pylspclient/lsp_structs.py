@@ -481,6 +481,19 @@ class CompletionItem(object):
         self.score = score
 
 
+class Diagnostic(object):
+    def __init__(self, range, message, severity=None, code=None, codeDescription=None, source=None, tags=None, relatedInformation=None, data=None):
+        self.range = range
+        self.message = message
+        self.severity = severity
+        self.code = code
+        self.codeDescription = codeDescription
+        self.source = source
+        self.tags = tags
+        self.relatedInformation = relatedInformation
+        self.data = data
+
+
 class CompletionItemKind(enum.Enum):
     Text = 1
     Method = 2
@@ -532,6 +545,8 @@ class ErrorCodes(enum.Enum):
     InternalError = -32603
     serverErrorStart = -32099
     serverErrorEnd = -32000
+    ServerQuit = -32003
+    ServerTimeout = -32004    
     ServerNotInitialized = -32002
     UnknownErrorCode = -32001
 
