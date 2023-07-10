@@ -1,6 +1,6 @@
 from pylspclient.lsp_structs import *
 from enum import Enum
-from typing import List, Tuple, Any, Dict
+from typing import List, Tuple, Any, Dict, Optional
 
 
 class PpFormat(Enum):
@@ -28,6 +28,9 @@ class Hyp:
         self.names = names
         self.ty = ty
         self.definition = definition
+
+    def __str__(self) -> str:
+        return f"{', '.join(self.names)} : {self.ty}"
 
 
 def hyp_from_lsp_hyp(hyp: Dict[str, Any]) -> Hyp:
@@ -305,3 +308,45 @@ class ProofViewError(Exception):
         self.message = message
         if data:
             self.data = data
+
+
+class ProofStep: 
+    def __init__(
+        self, 
+        text: str, 
+        focused_goal: Optional[Goal], 
+        vernac_type: Vernacexpr
+    ) -> None:
+        self.text = text
+        self.focused_goal = focused_goal
+        self.vernac_type = vernac_type
+
+    def __str__(self) -> str:
+        text = self.text
+        if self.vernac_type == Vernacexpr.VernacBullet or self.vernac_type == Vernacexpr.VernacEndProof: 
+            return text
+        
+        if self.focused_goal != None: 
+            hyps = self.focused_goal.hyps
+            if len(hyps) > 0:
+                text += '\n[CONTEXT]\n'
+                text += '\n'.join([str(hyp) for hyp in hyps])
+            else: 
+                text += '\n[CONTEXT] ' + "{EMPTY CONTEXT}"
+            text += '\n[GOAL] ' + str(self.focused_goal.ty) + '\n'
+        else: 
+            text += '\n[CONTEXT] ' + "{NO CONTEXT}"
+            text += '\n[GOAL] ' + "{NO GOALS}" + '\n'
+        
+        return text
+    
+
+class TheoremProof: 
+    def __init__(self, proof_steps: List[ProofStep]) -> None:
+        self.proof_steps = proof_steps
+
+    def __str__(self) -> str:
+        text = ''
+        for step in self.proof_steps:
+            text += str(step) + ('\n' if step.vernac_type != Vernacexpr.VernacBullet else ' ')
+        return text

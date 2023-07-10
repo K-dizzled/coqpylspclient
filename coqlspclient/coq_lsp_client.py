@@ -5,6 +5,7 @@ from pylspclient.lsp_structs import *
 from coqlspclient.coq_lsp_structs import *
 from typing import List
 import time
+import pprint
 import subprocess
 
 class CoqLspClient(LspClient):
@@ -26,13 +27,13 @@ class CoqLspClient(LspClient):
             rootPath="",
             rootUri=root_uri,
             initializationOptions={
-                "max_errors": 120000000,
+                "max_errors": 1500000,
                 "show_coq_info_messages": True,
                 "eager_diagnostics": False 
             },
             capabilities={},
             trace="off",
-            workspaceFolders=[{'name': 'coq-lsp', 'uri': root_uri}]
+            workspaceFolders=[{'uri': root_uri, 'name': 'folder'}]
         )
         self.initialized()
 
@@ -65,7 +66,7 @@ class CoqLspClient(LspClient):
         self, 
         textDocument: TextDocumentIdentifier,
         position: Position
-    ) -> None: 
+    ) -> GoalAnswer: 
         server_response = self.lsp_endpoint.call_method(
             method_name="proof/goals", 
             textDocument=textDocument, 
