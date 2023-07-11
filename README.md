@@ -33,6 +33,9 @@ proofs = pv.parse_file()
 # Does the same as: 
 proofs = [pv.get_proof_by_theorem(thm) for thm in pv.all_theorem_names()]
 # but with better performance.
+
+# Close the connection to the server.
+pv.exit()
 ```
 
 ## To run the tests
