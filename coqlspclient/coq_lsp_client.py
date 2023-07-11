@@ -5,7 +5,6 @@ from pylspclient.lsp_structs import *
 from coqlspclient.coq_lsp_structs import *
 from typing import List
 import time
-import pprint
 import subprocess
 
 class CoqLspClient(LspClient):

@@ -30,7 +30,6 @@ class ProofView(object):
         parent_dir = path_to_coq_file.parent.absolute()
         parent_dir_uri = f"file://{parent_dir}"
         file_uri = f"file://{file_path}"
-        print(parent_dir_uri)
 
         self.coq_lsp_client = CoqLspClient(parent_dir_uri)
         try:
@@ -61,13 +60,22 @@ class ProofView(object):
     def __get_vernacexpr(self, expr: Dict[str, Any]) -> Vernacexpr:
         return Vernacexpr(expr[0])
     
-    def __get_text_in_range(self, start: Range, end: Range) -> str:
+    def __get_text_in_range(
+        self, 
+        start: Range, 
+        end: Range, 
+        preserve_line_breaks: bool = False
+    ) -> str:
         if start.line == end.line: 
             return self.lines[start.line][start.character:end.character]
         else: 
             text = self.lines[start.line][start.character:]
             for i in range(start.line + 1, end.line):
+                if preserve_line_breaks: 
+                    text += '\n'
                 text += self.lines[i]
+            if preserve_line_breaks:
+                text += '\n'
             text += self.lines[end.line][:end.character]
 
             return text
@@ -106,8 +114,30 @@ class ProofView(object):
         proof = TheoremProof(proof)
         
         return proof
+    
+    def parse_file(self) -> List[Theorem]:
+        theorems = []
+        for i, span in enumerate(self.ast): 
+            try: 
+                if self.__get_vernacexpr(self.__get_expr(span)) == Vernacexpr.VernacStartTheoremProof: 
+                    thr_statement = self.__get_text_in_range(
+                        self.ast[i].range.start, 
+                        self.ast[i].range.end, 
+                        preserve_line_breaks=True
+                    )
+                    if i + 1 >= len(self.ast):
+                        theorems.append(Theorem(thr_statement, None))
+                    elif self.__get_vernacexpr(self.__get_expr(self.ast[i + 1])) != Vernacexpr.VernacProof:
+                        theorems.append(Theorem(thr_statement, None))
+                    else:
+                        proof = self.__parse_proof(i + 1)
+                        theorems.append(Theorem(thr_statement, proof))
+            except:
+                pass
 
-    def get_proof_by_theorem(self, theorem_name: str) -> Optional[TheoremProof]: 
+        return theorems
+
+    def get_proof_by_theorem(self, theorem_name: str) -> Optional[Theorem]: 
         found = False
         span_pos = 0
         for i, span in enumerate(self.ast): 
@@ -123,14 +153,21 @@ class ProofView(object):
         if not found:
             raise ProofViewError(f"Theorem {theorem_name} not found.")
         
+        thr_statement = self.__get_text_in_range(
+            self.ast[span_pos].range.start, 
+            self.ast[span_pos].range.end, 
+            preserve_line_breaks=True
+        )
+
         if span_pos + 1 >= len(self.ast):
-            return None
+            return Theorem(thr_statement, None)
         elif self.__get_vernacexpr(self.__get_expr(self.ast[span_pos + 1])) != Vernacexpr.VernacProof:
-            return None
+            return Theorem(thr_statement, None)
 
         try: 
             proof = self.__parse_proof(span_pos + 1)
-            return proof
+            theorem = Theorem(thr_statement, proof)
+            return theorem
         except ProofViewError:
             return None
 

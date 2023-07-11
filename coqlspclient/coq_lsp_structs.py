@@ -350,3 +350,19 @@ class TheoremProof:
         for step in self.proof_steps:
             text += str(step) + ('\n' if step.vernac_type != Vernacexpr.VernacBullet else ' ')
         return text
+    
+
+class Theorem: 
+    def __init__(
+        self, 
+        statement: str,
+        proof: Optional[TheoremProof] = None
+    ) -> None:
+        self.statement = statement
+        self.proof = proof
+
+    def __str__(self) -> str:
+        text = self.statement
+        if self.proof != None:
+            text += '\n' + str(self.proof)
+        return text
