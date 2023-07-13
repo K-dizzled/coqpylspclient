@@ -35,12 +35,15 @@ proofs = [pv.get_proof_by_theorem(thm) for thm in pv.all_theorem_names()]
 # but with better performance.
 
 # Try to check the proof for a given theorem.
-# Everything from the file that ProofView was configured with
-# is accessible from within the proof.
+# preceding_context is a string containing the context preceding
+# the proof. If you want to check the proof in top of the file,
+# which ProofView was initialized with, then pass 
+# preceding_context = '\n'.join(pv.lines)
 stt = "Theorem test_thr' : forall n:nat, 0 + n = n."
 proof = "Proof. now intros. Qed."
+preceding_context = ""
 
-check = pv.check_proof(stt, proof)
+check = pv.check_proof(stt, proof, preceding_context)
 
 # Close the connection to the server.
 pv.exit()

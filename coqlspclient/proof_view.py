@@ -127,7 +127,12 @@ class ProofView(object):
         with open(self.aux_path, 'w'):
             pass
 
-    def check_proof(self, thr_statement: str, proof: str) -> Tuple[bool, Optional[str]]:         
+    def check_proof(
+        self, 
+        thr_statement: str, 
+        proof: str, 
+        preceding_context: str
+    ) -> Tuple[bool, Optional[str]]:         
         """
         Checks if the given proof is valid for the given theorem statement.
         Returns a tuple of a boolean and an optional string. The boolean is 
@@ -142,7 +147,7 @@ class ProofView(object):
 
         self.__create_aux_file()
 
-        aux_file_text = '\n'.join(self.lines) + '\n\n' + thr_statement + '\n' + proof
+        aux_file_text = preceding_context + '\n\n' + thr_statement + '\n' + proof
         with open(self.aux_path, 'w') as f:
             f.write(aux_file_text)
 
@@ -156,7 +161,10 @@ class ProofView(object):
         post_proc()
 
         if uri in diagnostics: 
-            new_diags = list(filter(lambda diag: diag.range['start']['line'] >= len(self.lines), diagnostics[uri]))
+            new_diags = list(filter(
+                lambda diag: diag.range['start']['line'] >= len(preceding_context.split('\n')), 
+                diagnostics[uri]
+            ))
             error_diags = list(filter(lambda diag: diag.severity == 1, new_diags))
             if len(error_diags) > 0:
                 return False, error_diags[0].message
