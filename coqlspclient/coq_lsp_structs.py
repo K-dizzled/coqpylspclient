@@ -351,6 +351,11 @@ class TheoremProof:
             text += str(step) + ('\n' if step.vernac_type != Vernacexpr.VernacBullet else ' ')
         return text
     
+    def only_text(self) -> str: 
+        text = ''
+        for step in self.proof_steps:
+            text += step.text + ('\n' if step.vernac_type != Vernacexpr.VernacBullet else ' ')
+        return text
 
 class Theorem: 
     def __init__(
@@ -365,4 +370,10 @@ class Theorem:
         text = self.statement
         if self.proof != None:
             text += '\n' + str(self.proof)
+        return text
+    
+    def only_text(self) -> str:
+        text = self.statement
+        if self.proof != None:
+            text += '\n' + self.proof.only_text()
         return text
