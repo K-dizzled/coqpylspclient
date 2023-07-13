@@ -8,9 +8,12 @@ import os
 file_path = os.path.join("tests/resources", "aux.v")
 
 pv = ProofView(file_path)
-thrs = pv.all_theorem_names()
 
-pr = pv.get_proof_by_theorem("test_thr")
-print(pr)
+stt = "Theorem test_thr' : forall n:nat, 0 + n = n."
+proof = "Proof. now intros. Qed."
+
+check = pv.check_proof(stt, proof)
+
+print(check)
 
 pv.exit()

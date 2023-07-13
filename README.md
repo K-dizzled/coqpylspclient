@@ -34,6 +34,14 @@ proofs = pv.parse_file()
 proofs = [pv.get_proof_by_theorem(thm) for thm in pv.all_theorem_names()]
 # but with better performance.
 
+# Try to check the proof for a given theorem.
+# Everything from the file that ProofView was configured with
+# is accessible from within the proof.
+stt = "Theorem test_thr' : forall n:nat, 0 + n = n."
+proof = "Proof. now intros. Qed."
+
+check = pv.check_proof(stt, proof)
+
 # Close the connection to the server.
 pv.exit()
 ```

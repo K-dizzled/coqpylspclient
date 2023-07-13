@@ -5,3 +5,4 @@ Proof.
 Qed.
 
 Theorem test_thr1 : forall n:nat, 0 + n + 0 = n.
+Admitted.

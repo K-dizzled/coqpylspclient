@@ -94,6 +94,12 @@ class CoqLspClient(LspClient):
 
         return GoalAnswer(textDocument=textDocument, position=position, messages=messages, goals=goal_config)
     
+    def save_vo(self, textDocument: VersionedTextDocumentIdentifier) -> dict:
+        """
+        The uri in the textDocument should contain an absolute path.
+        """
+        result_dict = self.lsp_endpoint.call_method("coq/saveVo", textDocument=textDocument)
+        return result_dict
 
     def getDocument(
         self, 

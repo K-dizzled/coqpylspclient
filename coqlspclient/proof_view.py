@@ -3,6 +3,8 @@ from coqlspclient.coq_lsp_structs import *
 from pylspclient.lsp_structs import *
 from typing import Dict, Optional, Any, List, Tuple
 from pathlib import Path
+import uuid
+import os
 import functools
 
 
@@ -115,7 +117,61 @@ class ProofView(object):
         
         return proof
     
+    def __create_aux_file(self) -> str:
+        dir = os.path.dirname(self.path)
+        file_name, file_format = os.path.basename(self.path).split('.')
+        self.file_name = file_name
+        new_file_name_w_ext = file_name + \
+            f"new{str(uuid.uuid4()).replace('-', '')}." + file_format
+        self.aux_path = os.path.join(dir, new_file_name_w_ext)
+        with open(self.aux_path, 'w'):
+            pass
+
+    def check_proof(self, thr_statement: str, proof: str) -> Tuple[bool, Optional[str]]:         
+        """
+        Checks if the given proof is valid for the given theorem statement.
+        Returns a tuple of a boolean and an optional string. The boolean is 
+        True if the proof is valid, False otherwise.
+        The optional string is None if the proof is valid, otherwise it is a
+        string containing the error message.
+        """
+
+        def post_proc(): 
+            os.remove(self.aux_path)
+            self.aux_path = None
+
+        self.__create_aux_file()
+
+        aux_file_text = '\n'.join(self.lines) + '\n\n' + thr_statement + '\n' + proof
+        with open(self.aux_path, 'w') as f:
+            f.write(aux_file_text)
+
+        uri = f"file://{self.aux_path}"
+        self.coq_lsp_client.didOpen(TextDocumentItem(uri, 'coq', 1, aux_file_text))
+
+        with open(self.aux_path, 'r') as f:
+            self.coq_lsp_client.didOpen(TextDocumentItem(self.aux_path, 'coq', 1, f.read()))
+        
+        diagnostics = self.coq_lsp_client.lsp_endpoint.diagnostics
+        post_proc()
+
+        if uri in diagnostics: 
+            new_diags = list(filter(lambda diag: diag.range['start']['line'] >= len(self.lines), diagnostics[uri]))
+            error_diags = list(filter(lambda diag: diag.severity == 1, new_diags))
+            if len(error_diags) > 0:
+                return False, error_diags[0].message
+            else: 
+                return True, None
+            
+        raise ProofViewError("Error checking proof. Empty file diagnostics.")
+    
     def parse_file(self) -> List[Theorem]:
+        """
+        Parses the file and returns a list of theorems.
+        # Does the same as: 
+        # proofs = [pv.get_proof_by_theorem(thm) for thm in pv.all_theorem_names()]
+        # but with better performance.
+        """
         theorems = []
         for i, span in enumerate(self.ast): 
             try: 
@@ -138,6 +194,11 @@ class ProofView(object):
         return theorems
 
     def get_proof_by_theorem(self, theorem_name: str) -> Optional[Theorem]: 
+        """
+        Returns the proof of the given theorem name.
+        If the theorem is not found, raises an exception.
+        If proof is not present, returns None.
+        """
         found = False
         span_pos = 0
         for i, span in enumerate(self.ast): 
@@ -172,6 +233,9 @@ class ProofView(object):
             return None
 
     def all_theorem_names(self) -> List[str]:
+        """
+        Returns a list of all theorem names in the file.
+        """
         theorem_names = []
         for span in self.ast: 
             try: 

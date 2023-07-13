@@ -57,7 +57,7 @@ class LspEndpoint(threading.Thread):
                         if method not in self.notify_callbacks:
                             # Default method
                             logging.debug("received message:", params)
-                            if 'diagnostics' in params:
+                            if 'diagnostics' in params and method == 'textDocument/publishDiagnostics':
                                 for diagnostic in params['diagnostics']:
                                     if params['uri'] not in self.diagnostics:
                                         self.diagnostics[params['uri']] = []
