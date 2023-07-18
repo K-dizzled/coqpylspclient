@@ -366,6 +366,7 @@ class Theorem:
     ) -> None:
         self.statement = statement
         self.proof = proof
+        self.name = name
 
     def __str__(self) -> str:
         text = self.statement
