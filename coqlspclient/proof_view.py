@@ -176,9 +176,9 @@ class ProofView(object):
     def parse_file(self) -> List[Theorem]:
         """
         Parses the file and returns a list of theorems.
-        # Does the same as: 
-        # proofs = [pv.get_proof_by_theorem(thm) for thm in pv.all_theorem_names()]
-        # but with better performance.
+        Does the same as: 
+        proofs = [pv.get_proof_by_theorem(thm) for thm in pv.all_theorem_names()]
+        but with better performance.
         """
         theorems = []
         for i, span in enumerate(self.ast): 
