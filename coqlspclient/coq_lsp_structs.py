@@ -360,6 +360,7 @@ class TheoremProof:
 class Theorem: 
     def __init__(
         self, 
+        name: str,
         statement: str,
         proof: Optional[TheoremProof] = None
     ) -> None:
