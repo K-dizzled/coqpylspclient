@@ -361,12 +361,14 @@ class Theorem:
     def __init__(
         self, 
         name: str,
+        start_position: Position,
         statement: str,
         proof: Optional[TheoremProof] = None
     ) -> None:
         self.statement = statement
         self.proof = proof
         self.name = name
+        self.start_position = start_position
 
     def __str__(self) -> str:
         text = self.statement
