@@ -191,12 +191,12 @@ class ProofView(object):
                         preserve_line_breaks=True
                     )
                     if i + 1 >= len(self.ast):
-                        theorems.append(Theorem(thr_name, self.ast[i].range.start, thr_statement, None))
+                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
                     elif self.__get_vernacexpr(self.__get_expr(self.ast[i + 1])) != Vernacexpr.VernacProof:
-                        theorems.append(Theorem(thr_name, self.ast[i].range.start, thr_statement, None))
+                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
                     else:
                         proof = self.__parse_proof(i + 1)
-                        theorems.append(Theorem(thr_name, self.ast[i].range.start, thr_statement, proof))
+                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, proof))
             except:
                 pass
 
@@ -231,13 +231,13 @@ class ProofView(object):
         )
 
         if span_pos + 1 >= len(self.ast):
-            return Theorem(thr_name, self.ast[span_pos].range.start, thr_statement, None)
+            return Theorem(thr_name, self.ast[span_pos].range, thr_statement, None)
         elif self.__get_vernacexpr(self.__get_expr(self.ast[span_pos + 1])) != Vernacexpr.VernacProof:
-            return Theorem(thr_name, self.ast[span_pos].range.start, thr_statement, None)
+            return Theorem(thr_name, self.ast[span_pos].range, thr_statement, None)
 
         try: 
             proof = self.__parse_proof(span_pos + 1)
-            theorem = Theorem(thr_name, self.ast[span_pos].range.start, thr_statement, proof)
+            theorem = Theorem(thr_name, self.ast[span_pos].range, thr_statement, proof)
             return theorem
         except ProofViewError:
             return None
