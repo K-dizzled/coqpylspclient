@@ -160,6 +160,7 @@ class ProofView(object):
         
         diagnostics = self.coq_lsp_client.lsp_endpoint.diagnostics
         post_proc()
+        self.coq_lsp_client.didClose(TextDocumentIdentifier(uri))
 
         if uri in diagnostics: 
             new_diags = list(filter(
