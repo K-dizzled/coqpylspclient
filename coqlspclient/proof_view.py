@@ -2,6 +2,7 @@ from coqlspclient.coq_lsp_client import CoqLspClient
 from coqlspclient.coq_lsp_structs import *
 from pylspclient.lsp_structs import *
 from typing import Dict, Optional, Any, List, Tuple
+from alive_progress import alive_bar
 from pathlib import Path
 import uuid
 import os
@@ -181,24 +182,27 @@ class ProofView(object):
         but with better performance.
         """
         theorems = []
-        for i, span in enumerate(self.ast): 
-            try: 
-                if self.__get_vernacexpr(self.__get_expr(span)) == Vernacexpr.VernacStartTheoremProof: 
-                    thr_name = self.__get_theorem_name(self.__get_expr(span))
-                    thr_statement = self.__get_text_in_range(
-                        self.ast[i].range.start, 
-                        self.ast[i].range.end, 
-                        preserve_line_breaks=True
-                    )
-                    if i + 1 >= len(self.ast):
-                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
-                    elif self.__get_vernacexpr(self.__get_expr(self.ast[i + 1])) != Vernacexpr.VernacProof:
-                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
-                    else:
-                        proof = self.__parse_proof(i + 1)
-                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, proof))
-            except:
-                pass
+        with alive_bar(len(self.ast)) as bar:
+            for i, span in enumerate(self.ast): 
+                try: 
+                    if self.__get_vernacexpr(self.__get_expr(span)) == Vernacexpr.VernacStartTheoremProof: 
+                        thr_name = self.__get_theorem_name(self.__get_expr(span))
+                        thr_statement = self.__get_text_in_range(
+                            self.ast[i].range.start, 
+                            self.ast[i].range.end, 
+                            preserve_line_breaks=True
+                        )
+                        if i + 1 >= len(self.ast):
+                            theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
+                        elif self.__get_vernacexpr(self.__get_expr(self.ast[i + 1])) != Vernacexpr.VernacProof:
+                            theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
+                        else:
+                            proof = self.__parse_proof(i + 1)
+                            theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, proof))
+                except:
+                    pass
+                
+                bar()
 
         return theorems
 
