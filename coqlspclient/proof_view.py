@@ -154,9 +154,6 @@ class ProofView(object):
 
         uri = f"file://{self.aux_path}"
         self.coq_lsp_client.didOpen(TextDocumentItem(uri, 'coq', 1, aux_file_text))
-
-        with open(self.aux_path, 'r') as f:
-            self.coq_lsp_client.didOpen(TextDocumentItem(self.aux_path, 'coq', 1, f.read()))
         
         diagnostics = self.coq_lsp_client.lsp_endpoint.diagnostics
         post_proc()
