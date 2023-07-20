@@ -65,8 +65,8 @@ class ProofView(object):
     
     def __get_text_in_range(
         self, 
-        start: Range, 
-        end: Range, 
+        start: Position, 
+        end: Position, 
         preserve_line_breaks: bool = False
     ) -> str:
         if start.line == end.line: 
