@@ -49,7 +49,7 @@ def test_theorem_get_proof_empty():
     proof = proof_view.get_proof_by_theorem("test_thr1")
 
     assert proof.statement == 'Theorem test_thr1 : forall n:nat, 0 + n + 0 = n.'
-    assert proof.proof == None 
+    assert proof.proof is not None
 
 def test_theorem_get_proof():
     global proof_view
@@ -71,7 +71,7 @@ def test_parse_file_small():
     theorems = proof_view.parse_file()
 
     assert len(theorems) == 2
-    assert len(list(filter(lambda th: (th.proof is not None), theorems))) == 1
+    assert len(list(filter(lambda th: (th.proof is not None), theorems))) == 2
 
 def test_parse_file(): 
     global proof_view

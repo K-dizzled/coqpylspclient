@@ -5,11 +5,11 @@ from coqlspclient.proof_view import ProofView
 import os
 
 # Create an instance of a coq-lsp client and initialize it.
-file_path = os.path.join("tests/resources", "test_basic_sf.v")
+file_path = os.path.join("tests/resources", "aux.v")
 
 pv = ProofView(file_path)
 
-pr = pv.get_proof_by_theorem("plus_1_neq_0_firsttry")
-print(pr.only_text())
+pr = pv.get_proof_by_theorem("test_thr")
+print(pr.proof)
 
 pv.exit()
