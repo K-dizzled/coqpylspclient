@@ -9,6 +9,7 @@ file_path = os.path.join("tests/resources", "test_basic_sf.v")
 
 pv = ProofView(file_path)
 
-pv.parse_file()
+pr = pv.get_proof_by_theorem("plus_1_neq_0_firsttry")
+print(pr.only_text())
 
 pv.exit()

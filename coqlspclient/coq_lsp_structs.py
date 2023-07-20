@@ -342,8 +342,9 @@ class ProofStep:
     
 
 class TheoremProof: 
-    def __init__(self, proof_steps: List[ProofStep]) -> None:
+    def __init__(self, proof_steps: List[ProofStep], end_pos: Range) -> None:
         self.proof_steps = proof_steps
+        self.end_pos = end_pos
 
     def __str__(self) -> str:
         text = ''

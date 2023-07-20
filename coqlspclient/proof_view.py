@@ -87,14 +87,16 @@ class ProofView(object):
         index = span_index
         proven = False
         proof = []
+        end_pos = None
 
         while not proven and index < len(self.ast):
             span = self.ast[index]
             vernac_type = self.__get_vernacexpr(self.__get_expr(span))
-            if vernac_type == Vernacexpr.VernacEndProof: 
-                proof_step =  proof_step = ProofStep(self.__get_text_in_range(span.range.start, span.range.end), None, vernac_type)
+            if vernac_type == Vernacexpr.VernacEndProof or vernac_type == Vernacexpr.VernacAbort: 
+                proof_step = ProofStep(self.__get_text_in_range(span.range.start, span.range.end), None, vernac_type)
                 proof.append(proof_step)
                 proven = True
+                end_pos = span.range
             else: 
                 goal_ans = self.coq_lsp_client.proofGoals(TextDocumentIdentifier(self.file_uri), span.range.end)
                 proof_step_focused_goal = None
@@ -114,7 +116,7 @@ class ProofView(object):
         if not proven: 
             raise ProofViewError("Invalid or incomplete proof.")
         
-        proof = TheoremProof(proof)
+        proof = TheoremProof(proof, end_pos)
         
         return proof
     
