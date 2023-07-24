@@ -8,13 +8,9 @@ Package provides a partially implemented client for the coq-lsp server, as well 
 from coqlspclient.proof_view import ProofView
 
 # Create an instance of a coq-lsp client and initialize it.
+root_path = "tests/resources" 
 file_path = os.path.join("tests/resources", "aux.v")
-pv = ProofView(file_path)
-
-# It initializes the client assuming that the workspace folder
-# is the parent directory of the file. Meaning that 
-# `_CoqProject`, if present, should be in the parent directory
-# of the file.
+pv = ProofView(file_path, root_path)
 
 # Get a list of theorems in the file. 
 theorems = pv.all_theorem_names()

@@ -7,6 +7,10 @@ from pathlib import Path
 import uuid
 import os
 import functools
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ProofView")
 
 
 def silent_exec(fn_name='function', default=None, with_default=False):
@@ -28,13 +32,13 @@ def silent_exec(fn_name='function', default=None, with_default=False):
 
 
 class ProofView(object): 
-    def __init__(self, file_path): 
-        path_to_coq_file = Path(file_path)
-        parent_dir = path_to_coq_file.parent.absolute()
-        parent_dir_uri = f"file://{parent_dir}"
-        file_uri = f"file://{file_path}"
+    def __init__(self, file_path, root_path): 
+        path_to_coq_file = Path(file_path).absolute()
+        parent_dir = Path(root_path).absolute()
+        root_dir_uri = f"file://{parent_dir}"
+        file_uri = f"file://{path_to_coq_file}"
 
-        self.coq_lsp_client = CoqLspClient(parent_dir_uri)
+        self.coq_lsp_client = CoqLspClient(root_dir_uri)
         try:
             with open(file_path, 'r') as f:
                 self.lines = f.read().split('\n')
@@ -103,6 +107,8 @@ class ProofView(object):
                 if goal_ans.goals is not None:
                     if len(goal_ans.goals.goals) > 0: 
                         proof_step_focused_goal = goal_ans.goals.goals[0]
+                else: 
+                    logger.warning("No goals found for proof step")
 
                 proof_step = ProofStep(
                     self.__get_text_in_range(span.range.start, span.range.end),
@@ -239,8 +245,10 @@ class ProofView(object):
 
         next_expr_vernac = self.__get_vernacexpr(self.__get_expr(self.ast[i + 1]))
         if span_pos + 1 >= len(self.ast):
+            logger.warning(f"Failed to parse proof of {theorem_name}. File ended.")
             return Theorem(thr_name, self.ast[span_pos].range, thr_statement, None)
         elif next_expr_vernac not in [Vernacexpr.VernacProof, Vernacexpr.VernacAbort, Vernacexpr.VernacEndProof]:
+            logger.warning(f"Proof of theorem {theorem_name} is not finished.")
             return Theorem(thr_name, self.ast[span_pos].range, thr_statement, None)
 
         try: 

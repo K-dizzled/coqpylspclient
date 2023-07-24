@@ -3,9 +3,12 @@ import threading
 import logging
 from pylspclient import lsp_structs
 
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("LspEndpoint")
+
 
 class LspEndpoint(threading.Thread):
-    def __init__(self, json_rpc_endpoint, method_callbacks={}, notify_callbacks={}, timeout=2):
+    def __init__(self, json_rpc_endpoint, method_callbacks={}, notify_callbacks={}, timeout=30):
         threading.Thread.__init__(self)
         self.json_rpc_endpoint = json_rpc_endpoint
         self.notify_callbacks = notify_callbacks
@@ -56,7 +59,7 @@ class LspEndpoint(threading.Thread):
                         # a call for notify
                         if method not in self.notify_callbacks:
                             # Default method
-                            logging.debug("received message:", params)
+                            logger.debug(f"method {method} received message: {params}")
                             if 'diagnostics' in params and method == 'textDocument/publishDiagnostics':
                                 for diagnostic in params['diagnostics']:
                                     if params['uri'] not in self.diagnostics:

@@ -6,6 +6,12 @@ from coqlspclient.coq_lsp_structs import *
 from typing import List
 import time
 import subprocess
+import json
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger("CoqLspCalls")
+
 
 class CoqLspClient(LspClient):
     def __init__(self, root_uri: str) -> None:
@@ -21,6 +27,7 @@ class CoqLspClient(LspClient):
         lsp_endpoint = LspEndpoint(json_rpc_endpoint)
 
         super().__init__(lsp_endpoint)
+        logger.info(f"Sending request initialize. Params:\n root_uri: {root_uri}\n root_path: {root_uri}\n trace: off\n workspaceFolders: [{root_uri}]\n capabilities: {{}}")
         self.initialize(
             processId=process.pid,
             rootPath="",
@@ -32,11 +39,12 @@ class CoqLspClient(LspClient):
             },
             capabilities={},
             trace="off",
-            workspaceFolders=[{'uri': root_uri, 'name': 'folder'}]
+            workspaceFolders=[{'uri': root_uri, 'name': 'imm'}]
         )
         self.initialized()
 
     def didOpen(self, textDocument: TextDocumentItem) -> None:
+        logger.info(f"Sending request didOpen. Params:\n textDocument: {textDocument.toJSON()}")
         super().didOpen(textDocument)
         timeout = self.lsp_endpoint.timeout
         while timeout > 0:

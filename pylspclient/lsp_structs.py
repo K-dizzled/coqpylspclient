@@ -1,4 +1,5 @@
 import enum
+import json
 
 
 def to_type(o, new_type):
@@ -146,6 +147,10 @@ class TextDocumentItem(object):
         self.languageId = languageId
         self.version = version
         self.text = text
+
+    def toJSON(self):
+        return json.dumps(self, default=lambda o: {i:o.__dict__[i] for i in o.__dict__ if i!='text'}, 
+            sort_keys=True, indent=4)
 
 
 class TextDocumentIdentifier(object):

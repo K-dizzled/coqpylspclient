@@ -13,7 +13,8 @@ def pre_post_process():
 def test_theorem_fetch_small():
     global proof_view
     file_path = os.path.join("tests/resources", "aux.v")
-    proof_view = ProofView(file_path)
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
     thrs = proof_view.all_theorem_names()
 
     assert thrs == ["test_thr", "test_thr1"]
@@ -21,7 +22,8 @@ def test_theorem_fetch_small():
 def test_theorem_fetch_big():
     global proof_view
     file_path = os.path.join("tests/resources", "test_basic_sf.v")
-    proof_view = ProofView(file_path)
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
     thrs = proof_view.all_theorem_names()
     print(thrs)
     assert len(thrs) == 22
@@ -38,14 +40,16 @@ def test_theorem_fetch_big():
 def test_theorem_get_proof_exception(): 
     global proof_view
     file_path = os.path.join("tests/resources", "aux.v")
-    proof_view = ProofView(file_path)
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
     with pytest.raises(Exception):
         _ = proof_view.get_proof_by_theorem("test_thr2")
 
 def test_theorem_get_proof_empty(): 
     global proof_view
     file_path = os.path.join("tests/resources", "aux.v")
-    proof_view = ProofView(file_path)
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
     proof = proof_view.get_proof_by_theorem("test_thr1")
 
     assert proof.statement == 'Theorem test_thr1 : forall n:nat, 0 + n + 0 = n.'
@@ -54,7 +58,8 @@ def test_theorem_get_proof_empty():
 def test_theorem_get_proof():
     global proof_view
     file_path = os.path.join("tests/resources", "aux.v")
-    proof_view = ProofView(file_path)
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
     proof = proof_view.get_proof_by_theorem("test_thr")
 
     assert proof.statement == 'Theorem test_thr : forall n:nat, 0 + n = n.'
@@ -67,7 +72,8 @@ def test_theorem_get_proof():
 def test_parse_file_small(): 
     global proof_view
     file_path = os.path.join("tests/resources", "aux.v")
-    proof_view = ProofView(file_path)
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
     theorems = proof_view.parse_file()
 
     assert len(theorems) == 2
@@ -76,7 +82,8 @@ def test_parse_file_small():
 def test_parse_file(): 
     global proof_view
     file_path = os.path.join("tests/resources", "test_basic_sf.v")
-    proof_view = ProofView(file_path)
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
     theorems = proof_view.parse_file()
 
     assert len(theorems) == 22
