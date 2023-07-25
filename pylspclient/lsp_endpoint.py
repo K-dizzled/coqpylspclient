@@ -20,6 +20,7 @@ class LspEndpoint(threading.Thread):
         self.timeout = timeout
         self.shutdown_flag = False
         self.diagnostics = {}
+        self.files_progress_line = {}
 
 
     def handle_result(self, rpc_id, result, error):
@@ -59,7 +60,10 @@ class LspEndpoint(threading.Thread):
                         # a call for notify
                         if method not in self.notify_callbacks:
                             # Default method
-                            logger.debug(f"method {method} received message: {params}")
+                            if method == "$/coq/fileProgress": 
+                                # logger.debug(f"method {method} received message: {params}")
+                                process_range = params['processing'][0]['range']
+                                self.files_progress_line[params['textDocument']['uri']] = process_range['start']['line']
                             if 'diagnostics' in params and method == 'textDocument/publishDiagnostics':
                                 for diagnostic in params['diagnostics']:
                                     if params['uri'] not in self.diagnostics:
