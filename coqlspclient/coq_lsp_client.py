@@ -3,7 +3,7 @@ from pylspclient.json_rpc_endpoint import JsonRpcEndpoint
 from pylspclient.lsp_endpoint import LspEndpoint
 from pylspclient.lsp_structs import *
 from coqlspclient.coq_lsp_structs import *
-from alive_progress import alive_bar
+from progress.bar import Bar
 from typing import List
 import time
 import subprocess
@@ -49,20 +49,25 @@ class CoqLspClient(LspClient):
         super().didOpen(textDocument)
         timeout = self.lsp_endpoint.timeout
         amount_lines = len(textDocument.text.split('\n')) - 1
-        with alive_bar(amount_lines, manual=True) as bar:
-            while timeout > 0:
-                if self.lsp_endpoint.completed_operation:
-                    return
-                elif self.lsp_endpoint.shutdown_flag:
-                    raise ResponseError(ErrorCodes.ServerQuit, "Server quit")
-                else:
-                    time.sleep(0.1)
-                    timeout -= 0.1
-                    
-                    cur_process_line_nullable = self.lsp_endpoint.files_progress_line.get(textDocument.uri)
-                    cur_process_line = 0 if cur_process_line_nullable is None else cur_process_line_nullable
-                    cur_percentage = cur_process_line / amount_lines
-                    bar(cur_percentage)
+        bar = Bar('Processing document', max=amount_lines)
+        bar_state = 0
+        while timeout > 0:
+            if self.lsp_endpoint.completed_operation:
+                return
+            elif self.lsp_endpoint.shutdown_flag:
+                raise ResponseError(ErrorCodes.ServerQuit, "Server quit")
+            else:
+                time.sleep(0.1)
+                timeout -= 0.1
+                
+                cur_process_line_nullable = self.lsp_endpoint.files_progress_line.get(textDocument.uri)
+                cur_process_line = 0 if cur_process_line_nullable is None else cur_process_line_nullable
+                while cur_process_line > bar_state:
+                    bar.next()
+                    bar_state += 1
+
+        bar.finish()
+        print('\n')
 
         self.shutdown()
         self.exit()
