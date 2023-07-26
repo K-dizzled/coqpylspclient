@@ -48,7 +48,7 @@ class CoqLspClient(LspClient):
         logger.info(f"Sending request didOpen. Params:\n textDocument: {textDocument.toJSON()}")
         super().didOpen(textDocument)
         timeout = self.lsp_endpoint.timeout
-        amount_lines = len(textDocument.text.split('\n')) - 2
+        amount_lines = len(textDocument.text.split('\n')) - 1
         with alive_bar(amount_lines, manual=True) as bar:
             while timeout > 0:
                 if self.lsp_endpoint.completed_operation:
