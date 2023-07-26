@@ -53,8 +53,12 @@ class CoqLspClient(LspClient):
         bar_state = 0
         while timeout > 0:
             if self.lsp_endpoint.completed_operation:
+                bar.finish()
+                print('\n')
                 return
             elif self.lsp_endpoint.shutdown_flag:
+                bar.finish()
+                print('\n')
                 raise ResponseError(ErrorCodes.ServerQuit, "Server quit")
             else:
                 time.sleep(0.1)
