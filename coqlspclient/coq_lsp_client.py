@@ -75,8 +75,19 @@ class CoqLspClient(LspClient):
         contentChanges: List[TextDocumentContentChangeEvent]
     ) -> None:
         super().didChange(textDocument, contentChanges)
-        while self.lsp_endpoint.completed_operation != True:
-            time.sleep(0.1)
+        timeout = 5
+        while timeout > 0:
+            if self.lsp_endpoint.completed_operation:
+                return
+            elif self.lsp_endpoint.shutdown_flag:
+                raise ResponseError(ErrorCodes.ServerQuit, "Server quit")
+            else:
+                time.sleep(0.1)
+                timeout -= 0.1
+        
+        self.shutdown()
+        self.exit()
+        raise ResponseError(ErrorCodes.ServerTimeout, "Timeout server response")
 
     def proofGoals(
         self, 

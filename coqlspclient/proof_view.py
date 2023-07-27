@@ -215,32 +215,31 @@ class ProofView(object):
                 content_changes = [TextDocumentContentChangeEvent(range=None, rangeLength=None, text=new_text)]
                 if uri in self.coq_lsp_client.lsp_endpoint.diagnostics: 
                     self.coq_lsp_client.lsp_endpoint.diagnostics[uri] = []
-                print("sending didChange")
-                self.coq_lsp_client.didChange(versioned_doc, content_changes)
-                print("diagnostics updated")
+
+                try: 
+                    self.coq_lsp_client.didChange(versioned_doc, content_changes)
+                except ResponseError:
+                    raise ProofViewError("Server is not responding.")
+
                 diagnostics = self.coq_lsp_client.lsp_endpoint.diagnostics
 
                 with open(self.aux_path, 'w') as f:
                     f.write(aux_file_text)
 
                 if uri in diagnostics: 
-                    print("diagnostics found")
                     new_diags = list(filter(
                         lambda diag: diag.range['start']['line'] >= len(preceding_context.split('\n')), 
                         diagnostics[uri]
                     ))
                     error_diags = list(filter(lambda diag: diag.severity == 1, new_diags))
                     if len(error_diags) > 0:
-                        print("proof is invalid")
                         proof_verdicts.append((False, error_diags[0].message))
                     else: 
-                        print("proof is valid")
                         proof_verdicts.append((True, None))
                         post_proc()
                         bar()
                         return proof_verdicts
                 else: 
-                    print("error occured")
                     raise ProofViewError("Error checking proof. Empty file diagnostics.")
                 bar()
         
