@@ -199,40 +199,44 @@ class ProofView(object):
             f.write(aux_file_text)
 
         uri = f"file://{self.aux_path}"
+        logger.info(f"Start processing file's preceding context.")
         self.coq_lsp_client.didOpen(TextDocumentItem(uri, 'coq', 1, aux_file_text))
         document_version = 1
         proof_verdicts = []
 
-        for proof in proofs:
-            new_text = aux_file_text + proof
-            document_version += 1
-            with open(self.aux_path, 'a') as f:
-                f.write(proof)
-            versioned_doc = VersionedTextDocumentIdentifier(uri, document_version)
-            content_changes = [TextDocumentContentChangeEvent(range=None, rangeLength=None, text=new_text)]
-            if uri in self.coq_lsp_client.lsp_endpoint.diagnostics: 
-                self.coq_lsp_client.lsp_endpoint.diagnostics[uri] = []
+        with alive_bar(len(self.ast)) as bar:
+            for proof in proofs:
+                new_text = aux_file_text + proof
+                document_version += 1
+                with open(self.aux_path, 'a') as f:
+                    f.write(proof)
+                versioned_doc = VersionedTextDocumentIdentifier(uri, document_version)
+                content_changes = [TextDocumentContentChangeEvent(range=None, rangeLength=None, text=new_text)]
+                if uri in self.coq_lsp_client.lsp_endpoint.diagnostics: 
+                    self.coq_lsp_client.lsp_endpoint.diagnostics[uri] = []
 
-            self.coq_lsp_client.didChange(versioned_doc, content_changes)
-            diagnostics = self.coq_lsp_client.lsp_endpoint.diagnostics
+                self.coq_lsp_client.didChange(versioned_doc, content_changes)
+                diagnostics = self.coq_lsp_client.lsp_endpoint.diagnostics
 
-            with open(self.aux_path, 'w') as f:
-                f.write(aux_file_text)
+                with open(self.aux_path, 'w') as f:
+                    f.write(aux_file_text)
 
-            if uri in diagnostics: 
-                new_diags = list(filter(
-                    lambda diag: diag.range['start']['line'] >= len(preceding_context.split('\n')), 
-                    diagnostics[uri]
-                ))
-                error_diags = list(filter(lambda diag: diag.severity == 1, new_diags))
-                if len(error_diags) > 0:
-                    proof_verdicts.append((False, error_diags[0].message))
+                if uri in diagnostics: 
+                    new_diags = list(filter(
+                        lambda diag: diag.range['start']['line'] >= len(preceding_context.split('\n')), 
+                        diagnostics[uri]
+                    ))
+                    error_diags = list(filter(lambda diag: diag.severity == 1, new_diags))
+                    if len(error_diags) > 0:
+                        proof_verdicts.append((False, error_diags[0].message))
+                    else: 
+                        proof_verdicts.append((True, None))
+                        post_proc()
+                        bar()
+                        return proof_verdicts
                 else: 
-                    proof_verdicts.append((True, None))
-                    post_proc()
-                    return proof_verdicts
-            else: 
-                raise ProofViewError("Error checking proof. Empty file diagnostics.")
+                    raise ProofViewError("Error checking proof. Empty file diagnostics.")
+                bar()
         
         post_proc()
         return proof_verdicts

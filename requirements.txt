@@ -1,3 +1,2 @@
 enum ; python_version < '3.4'
 alive-progress==3.1.4
-progress==1.6
