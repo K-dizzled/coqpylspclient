@@ -10,7 +10,7 @@ import subprocess
 import json
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("CoqLspCalls")
 
 
@@ -28,7 +28,7 @@ class CoqLspClient(LspClient):
         lsp_endpoint = LspEndpoint(json_rpc_endpoint)
 
         super().__init__(lsp_endpoint)
-        logger.info(f"Sending request initialize. Params:\n root_uri: {root_uri}\n workspaceFolders: [{root_uri}]\n capabilities: {{}}")
+        logger.debug(f"Sending request initialize. Params:\n root_uri: {root_uri}\n workspaceFolders: [{root_uri}]\n capabilities: {{}}")
         self.initialize(
             processId=process.pid,
             rootPath="",
@@ -45,13 +45,14 @@ class CoqLspClient(LspClient):
         self.initialized()
 
     def didOpen(self, textDocument: TextDocumentItem) -> None:
-        logger.info(f"Sending request didOpen. Params:\n textDocument: {textDocument.toJSON()}")
+        logger.debug(f"Sending request didOpen. Params:\n textDocument: {textDocument.toJSON()}")
         super().didOpen(textDocument)
         timeout = self.lsp_endpoint.timeout
         amount_lines = len(textDocument.text.split('\n')) - 1
         with alive_bar(amount_lines, manual=True) as bar:
             while timeout > 0:
                 if self.lsp_endpoint.completed_operation:
+                    bar(1)
                     return
                 elif self.lsp_endpoint.shutdown_flag:
                     raise ResponseError(ErrorCodes.ServerQuit, "Server quit")

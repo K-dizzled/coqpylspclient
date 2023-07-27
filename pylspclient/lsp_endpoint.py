@@ -3,7 +3,7 @@ import threading
 import logging
 from pylspclient import lsp_structs
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("LspEndpoint")
 
 
