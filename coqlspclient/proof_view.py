@@ -240,6 +240,7 @@ class ProofView(object):
                 bar()
         
         post_proc()
+        self.coq_lsp_client.didClose(TextDocumentIdentifier(uri))
         return proof_verdicts
     
     def parse_file(self) -> List[Theorem]:
