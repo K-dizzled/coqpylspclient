@@ -2,6 +2,7 @@ from coqlspclient.proof_view import ProofView
 import os
 import pytest
 from coqlspclient.coq_lsp_structs import *
+import time
 
 proof_view: ProofView = None
 
@@ -78,6 +79,81 @@ def test_parse_file_small():
 
     assert len(theorems) == 2
     assert len(list(filter(lambda th: (th.proof is not None), theorems))) == 2
+
+def test_check_proofs_simple(): 
+    global proof_view
+    file_path = os.path.join("tests/resources", "aux.v")
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
+    preceding_context = ""
+    thr_statement = "Theorem plus_O_n'' : forall n:nat, 0 + n = n."
+    proofs = [
+        "Proof. intros n. Qed.",
+        "Proof. kek. Qed.",
+        "Proof. lol. Qed.",
+        "Proof. assumption. Qed.",
+        "Proof. reflexivity. Qed.",
+        "Proof. auto. Qed.",
+    ]
+    answers = [
+        (False, " (in proof plus_O_n''): Attempt to save an incomplete proof"),
+        (False, "The reference kek was not found in the current environment."),
+        (False, "The reference lol was not found in the current environment."),
+        (False, "No such assumption."),
+        (True, None)
+    ]
+    res = proof_view.check_proofs(preceding_context, thr_statement, proofs)
+    
+    for (r, a) in zip(res, answers): 
+        assert r[0] == a[0]
+        assert r[1] == a[1]
+        
+def test_check_proofs_normal(): 
+    global proof_view
+    file_path = os.path.join("tests/resources", "test_basic_sf.v")
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
+    preceding_context = ""
+    thr_statement = "Theorem test_thr1 : forall n:nat, 0 + n + 0 = n."
+    proofs = [
+        "Proof.\nintros n.\nsimpl.\nrewrite plus_0_r.\nreflexivity.\nQed.",
+        "Proof.\nintros n.\nsimpl.\nPrint plus.\nrewrite plus_0_r.\nreflexivity.\nQed.",
+        "Proof.\nintros n.\nrewrite plus_0_r.\nrewrite plus_0_l.\nreflexivity.\nQed.",
+        "Proof.\nintros n.\nsimpl.\nrewrite plus_0_r.\nreflexivity.\nQed.",
+        "Proof.\nintros n.\nrewrite <- plus_n_O.\nrewrite <- plus_n_O at 1.\nreflexivity.\nQed.",
+        "Proof.\nintros n.\nsimpl.\nrewrite plus_0_r.\nreflexivity.\nQed.",
+        "Proof.\nintros n.\nPrint plus.\nsimpl.\nrewrite <- plus_n_O.\nreflexivity.\nQed."
+    ]
+    answers = [
+        (False, "The variable plus_0_r was not found in the current environment."),
+        (False, "The variable plus_0_r was not found in the current environment."),
+        (False, "The variable plus_0_r was not found in the current environment."),
+        (False, "The variable plus_0_r was not found in the current environment."),
+        (False, 'Found no subterm matching "?n + 0" in the current goal.'),
+        (False, "The variable plus_0_r was not found in the current environment."),
+        (True, None)
+    ]
+    # Measure time
+    start = time.time()
+    res = proof_view.check_proofs(preceding_context, thr_statement, proofs)
+    end = time.time()
+    time_for_check_proofs_call = end - start
+
+    for (r, a) in zip(res, answers):
+        assert r[0] == a[0]
+        assert r[1] == a[1]
+
+    # Check that such call is faster than calling chech_proof for each proof separately
+    time_for_check_proof_calls = 0
+    for i, proof in enumerate(proofs):
+        start = time.time()
+        res = proof_view.check_proof(thr_statement, proof, preceding_context)
+        end = time.time()
+        assert res[0] == answers[i][0]
+        assert res[1] == answers[i][1]
+        time_for_check_proof_calls += end - start
+    
+    assert time_for_check_proofs_call < time_for_check_proof_calls
 
 def test_parse_file(): 
     global proof_view
