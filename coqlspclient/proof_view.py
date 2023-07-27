@@ -205,7 +205,7 @@ class ProofView(object):
         proof_verdicts = []
 
         logger.info(f"Start processing various proofs.")
-        with alive_bar(len(self.ast)) as bar:
+        with alive_bar(len(proofs)) as bar:
             for proof in proofs:
                 new_text = aux_file_text + proof
                 document_version += 1
