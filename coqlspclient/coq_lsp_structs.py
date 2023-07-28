@@ -329,14 +329,14 @@ class ProofStep:
         if self.focused_goal != None: 
             hyps = self.focused_goal.hyps
             if len(hyps) > 0:
-                text += '\n[CONTEXT]\n'
-                text += '\n'.join([str(hyp) for hyp in hyps])
+                text += '\n(*\n[CONTEXT]\n'
+                text += '\n'.join([str(hyp) for hyp in hyps]) + '\n*)'
             else: 
-                text += '\n[CONTEXT] ' + "{EMPTY CONTEXT}"
-            text += '\n[GOAL] ' + str(self.focused_goal.ty) + '\n'
+                text += '\n(* [CONTEXT] ' + "{EMPTY CONTEXT} " + '*)'
+            text += '\n(* [GOAL] ' + str(self.focused_goal.ty) + ' *)\n'
         else: 
-            text += '\n[CONTEXT] ' + "{NO CONTEXT}"
-            text += '\n[GOAL] ' + "{NO GOALS}" + '\n'
+            text += '\n(* [CONTEXT] ' + "{NO CONTEXT} " + '*)'
+            text += '\n(* [GOAL] ' + "{NO GOALS} " + '*)\n'
         
         return text
     
