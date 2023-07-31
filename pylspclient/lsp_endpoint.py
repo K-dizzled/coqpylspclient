@@ -8,7 +8,7 @@ logger = logging.getLogger("LspEndpoint")
 
 
 class LspEndpoint(threading.Thread):
-    def __init__(self, json_rpc_endpoint, method_callbacks={}, notify_callbacks={}, timeout=30):
+    def __init__(self, json_rpc_endpoint, method_callbacks={}, notify_callbacks={}, timeout=50):
         threading.Thread.__init__(self)
         self.json_rpc_endpoint = json_rpc_endpoint
         self.notify_callbacks = notify_callbacks
