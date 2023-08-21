@@ -1,7 +1,7 @@
-from coqlspclient.coq_lsp_client import CoqLspClient
-from coqlspclient.coq_lsp_structs import *
+from .coq_lsp_client import CoqLspClient
+from .coq_lsp_structs import *
 from pylspclient.lsp_structs import *
-from coqlspclient.proof_view import ProofView
+from .proof_view import ProofView
 import os
 
 # Create an instance of a coq-lsp client and initialize it.
