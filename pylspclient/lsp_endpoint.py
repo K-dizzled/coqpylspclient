@@ -1,7 +1,7 @@
 from __future__ import print_function
 import threading
 import logging
-from pylspclient import lsp_structs
+from . import lsp_structs
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("LspEndpoint")
