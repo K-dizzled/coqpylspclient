@@ -1,6 +1,6 @@
 from .coq_lsp_client import CoqLspClient
 from .coq_lsp_structs import *
-from pylspclient.lsp_structs import *
+from ..pylspclient.lsp_structs import *
 from .proof_view import ProofView
 import os
 

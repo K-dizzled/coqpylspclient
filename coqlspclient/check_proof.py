@@ -1,6 +1,6 @@
 from .coq_lsp_client import CoqLspClient
 from .coq_lsp_structs import *
-from pylspclient.lsp_structs import *
+from ..pylspclient.lsp_structs import *
 from typing import Tuple
 from pathlib import Path
 import os

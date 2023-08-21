@@ -1,4 +1,4 @@
-from pylspclient.lsp_structs import *
+from ..pylspclient.lsp_structs import *
 from enum import Enum
 from typing import List, Tuple, Any, Dict, Optional
 
