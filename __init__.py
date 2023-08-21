@@ -1,2 +1,2 @@
-from coqlspclient import *
-from pylspclient.lsp_structs import *
+import coqlspclient
+import pylspclient.lsp_structs
