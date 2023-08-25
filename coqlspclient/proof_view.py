@@ -190,6 +190,11 @@ class ProofView(object):
             if len(error_diags) > 0:
                 return False, error_diags[0].message
             else: 
+                # TODO: Better check using vernac Print Assumptions {theorem_name}.
+                # Somewhy, I am currently unble to retrieve the messages
+                if 'Abort.' in proof or 'Admitted.' in proof: 
+                    return False, "Proof contains 'Abort.' or 'Admitted.'"
+                
                 return True, None
             
         raise ProofViewError("Error checking proof. Empty file diagnostics.")
@@ -227,7 +232,6 @@ class ProofView(object):
                 content_changes = [TextDocumentContentChangeEvent(range=None, rangeLength=None, text=new_text)]
                 if uri in self.coq_lsp_client.lsp_endpoint.diagnostics: 
                     self.coq_lsp_client.lsp_endpoint.diagnostics[uri] = []
-
                 try: 
                     self.coq_lsp_client.didChange(versioned_doc, content_changes)
                 except ResponseError:
@@ -247,10 +251,15 @@ class ProofView(object):
                     if len(error_diags) > 0:
                         proof_verdicts.append((False, error_diags[0].message))
                     else: 
-                        proof_verdicts.append((True, None))
-                        post_proc()
-                        bar()
-                        return proof_verdicts
+                        # TODO: Better check using vernac Print Assumptions {theorem_name}.
+                        # Somewhy, I am currently unble to retrieve the messages
+                        if 'Abort.' in proof or 'Admitted.' in proof: 
+                            proof_verdicts.append((False, "Proof contains 'Abort.' or 'Admitted.'"))
+                        else: 
+                            proof_verdicts.append((True, None))
+                            post_proc()
+                            bar()
+                            return proof_verdicts
                 else: 
                     raise ProofViewError("Error checking proof. Empty file diagnostics.")
                 bar()

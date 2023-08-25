@@ -99,6 +99,19 @@ def test_parse_file_small():
     assert len(theorems) == 2
     assert len(list(filter(lambda th: (th.proof is not None), theorems))) == 2
 
+def test_check_proof_simple():
+    global proof_view
+    file_path = os.path.join("tests/resources", "aux.v")
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
+    preceding_context = ""
+    thr_statement = "Theorem plus_O_n'' : forall n:nat, 0 + n = n."
+    proof = "Proof. Admitted."
+    answer = (False, "Proof contains 'Abort.' or 'Admitted.'")
+    res = proof_view.check_proof(thr_statement, proof, preceding_context)
+    assert res[0] == answer[0]
+    assert res[1] == answer[1]
+
 def test_check_proofs_simple(): 
     global proof_view
     file_path = os.path.join("tests/resources", "aux.v")
@@ -111,6 +124,8 @@ def test_check_proofs_simple():
         "Proof. kek. Qed.",
         "Proof. lol. Qed.",
         "Proof. assumption. Qed.",
+        "Proof. Admitted.",
+        "Proof. reflexivity. Abort.",
         "Proof. reflexivity. Qed.",
         "Proof. auto. Qed.",
     ]
@@ -119,6 +134,8 @@ def test_check_proofs_simple():
         (False, "The reference kek was not found in the current environment."),
         (False, "The reference lol was not found in the current environment."),
         (False, "No such assumption."),
+        (False, "Proof contains 'Abort.' or 'Admitted.'"),
+        (False, "Proof contains 'Abort.' or 'Admitted.'"),
         (True, None)
     ]
     res = proof_view.check_proofs(preceding_context, thr_statement, proofs)
