@@ -342,9 +342,10 @@ class ProofStep:
     
 
 class TheoremProof: 
-    def __init__(self, proof_steps: List[ProofStep], end_pos: Range) -> None:
+    def __init__(self, proof_steps: List[ProofStep], end_pos: Range, is_incomplete: bool) -> None:
         self.proof_steps = proof_steps
         self.end_pos = end_pos
+        self.is_incomplete = is_incomplete
 
     def __str__(self) -> str:
         text = ''

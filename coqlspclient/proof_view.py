@@ -67,6 +67,13 @@ class ProofView(object):
     def __get_vernacexpr(self, expr: Dict[str, Any]) -> Vernacexpr:
         return Vernacexpr(expr[0])
     
+    @silent_exec(fn_name='get_vernacexpr', with_default=True)
+    def __get_proof_end_command(self, expr: Dict[str, Any]) -> str:
+        return expr[1][0]
+    
+    def __check_if_expr_e_admit(self, expr: Dict[str, Any]) -> bool: 
+        return self.__get_proof_end_command(expr) == 'Admitted'
+    
     def __get_text_in_range(
         self, 
         start: Position, 
@@ -92,6 +99,7 @@ class ProofView(object):
         proven = False
         proof = []
         end_pos = None
+        proof_contains_admit = False
 
         while not proven and index < len(self.ast):
             span = self.ast[index]
@@ -101,6 +109,10 @@ class ProofView(object):
                 proof.append(proof_step)
                 proven = True
                 end_pos = span.range
+                # I assume when proof has some admitted parts it has either Admitted or Abort in the end
+                # Isn't that right?
+                if self.__check_if_expr_e_admit(self.__get_expr(span)) or vernac_type == Vernacexpr.VernacAbort: 
+                    proof_contains_admit = True
             else: 
                 goal_ans = self.coq_lsp_client.proofGoals(TextDocumentIdentifier(self.file_uri), span.range.end)
                 proof_step_focused_goal = None
@@ -122,7 +134,7 @@ class ProofView(object):
         if not proven: 
             raise ProofViewError("Invalid or incomplete proof.")
         
-        proof = TheoremProof(proof, end_pos)
+        proof = TheoremProof(proof, end_pos, is_incomplete=proof_contains_admit)
         
         return proof
     

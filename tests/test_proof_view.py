@@ -1,9 +1,12 @@
-from coqlspclient.proof_view import ProofView
 import os
 import pytest
-from coqlspclient.coq_lsp_structs import *
 import time
+import sys
 
+sys.path.append(os.path.abspath('../'))
+
+from ..coqlspclient.proof_view import ProofView
+from ..coqlspclient.coq_lsp_structs import *
 proof_view: ProofView = None
 
 @pytest.fixture(autouse=True)
@@ -55,6 +58,22 @@ def test_theorem_get_proof_empty():
 
     assert proof.statement == 'Theorem test_thr1 : forall n:nat, 0 + n + 0 = n.'
     assert proof.proof is not None
+    
+def test_incomplete_proofs():
+    global proof_view
+    file_path = os.path.join("tests/resources", "test_incomplete_proofs.v")
+    root_path = "tests/resources"
+    proof_view = ProofView(file_path, root_path)
+    incomplete_indeces = [2, 3, 4, 5, 6]
+    complete_indeces = [1, 8]
+
+    for i in incomplete_indeces:
+        proof = proof_view.get_proof_by_theorem(f"test_incomplete_proof{i}")
+        assert proof.proof.is_incomplete == True
+    
+    for i in complete_indeces:
+        proof = proof_view.get_proof_by_theorem(f"test_incomplete_proof{i}")
+        assert proof.proof.is_incomplete == False
 
 def test_theorem_get_proof():
     global proof_view
