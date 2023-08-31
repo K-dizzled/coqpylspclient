@@ -1,2 +1,2 @@
 enum ; python_version < '3.4'
-alive-progress==3.1.4
+progressbar==2.5

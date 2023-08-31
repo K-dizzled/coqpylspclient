@@ -2,12 +2,12 @@ from .coq_lsp_client import CoqLspClient
 from .coq_lsp_structs import *
 from ..pylspclient.lsp_structs import *
 from typing import Dict, Optional, Any, List, Tuple
-from alive_progress import alive_bar
 from pathlib import Path
 import uuid
 import os
 import functools
 import logging
+from .progress_bar import ProgressBar, AliveProgressBar
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ProofView")
@@ -32,13 +32,14 @@ def silent_exec(fn_name='function', default=None, with_default=False):
 
 
 class ProofView(object): 
-    def __init__(self, file_path, root_path): 
+    def __init__(self, file_path, root_path, prog_bar: ProgressBar = AliveProgressBar()): 
         path_to_coq_file = Path(file_path).absolute()
         parent_dir = Path(root_path).absolute()
         root_dir_uri = f"file://{parent_dir}"
         file_uri = f"file://{path_to_coq_file}"
 
-        self.coq_lsp_client = CoqLspClient(root_dir_uri)
+        self.prog_bar = prog_bar
+        self.coq_lsp_client = CoqLspClient(root_dir_uri, self.prog_bar)
         try:
             with open(file_path, 'r') as f:
                 self.lines = f.read().split('\n')
@@ -208,6 +209,7 @@ class ProofView(object):
         def post_proc(): 
             os.remove(self.aux_path)
             self.aux_path = None
+            self.prog_bar.finish()
 
         self.__create_aux_file()
 
@@ -222,47 +224,47 @@ class ProofView(object):
         proof_verdicts = []
 
         logger.info(f"Start processing various proofs.")
-        with alive_bar(len(proofs)) as bar:
-            for proof in proofs:
-                new_text = aux_file_text + proof
-                document_version += 1
-                with open(self.aux_path, 'a') as f:
-                    f.write(proof)
-                versioned_doc = VersionedTextDocumentIdentifier(uri, document_version)
-                content_changes = [TextDocumentContentChangeEvent(range=None, rangeLength=None, text=new_text)]
-                if uri in self.coq_lsp_client.lsp_endpoint.diagnostics: 
-                    self.coq_lsp_client.lsp_endpoint.diagnostics[uri] = []
-                try: 
-                    self.coq_lsp_client.didChange(versioned_doc, content_changes)
-                except ResponseError:
-                    raise ProofViewError("Server is not responding.")
+        self.prog_bar.initialize(len(proofs))
+        for proof in proofs:
+            new_text = aux_file_text + proof
+            document_version += 1
+            with open(self.aux_path, 'a') as f:
+                f.write(proof)
+            versioned_doc = VersionedTextDocumentIdentifier(uri, document_version)
+            content_changes = [TextDocumentContentChangeEvent(range=None, rangeLength=None, text=new_text)]
+            if uri in self.coq_lsp_client.lsp_endpoint.diagnostics: 
+                self.coq_lsp_client.lsp_endpoint.diagnostics[uri] = []
+            try: 
+                self.coq_lsp_client.didChange(versioned_doc, content_changes)
+            except ResponseError:
+                raise ProofViewError("Server is not responding.")
 
-                diagnostics = self.coq_lsp_client.lsp_endpoint.diagnostics
+            diagnostics = self.coq_lsp_client.lsp_endpoint.diagnostics
 
-                with open(self.aux_path, 'w') as f:
-                    f.write(aux_file_text)
+            with open(self.aux_path, 'w') as f:
+                f.write(aux_file_text)
 
-                if uri in diagnostics: 
-                    new_diags = list(filter(
-                        lambda diag: diag.range['start']['line'] >= len(preceding_context.split('\n')), 
-                        diagnostics[uri]
-                    ))
-                    error_diags = list(filter(lambda diag: diag.severity == 1, new_diags))
-                    if len(error_diags) > 0:
-                        proof_verdicts.append((False, error_diags[0].message))
-                    else: 
-                        # TODO: Better check using vernac Print Assumptions {theorem_name}.
-                        # Somewhy, I am currently unble to retrieve the messages
-                        if 'Abort.' in proof or 'Admitted.' in proof: 
-                            proof_verdicts.append((False, "Proof contains 'Abort.' or 'Admitted.'"))
-                        else: 
-                            proof_verdicts.append((True, None))
-                            post_proc()
-                            bar()
-                            return proof_verdicts
+            if uri in diagnostics: 
+                new_diags = list(filter(
+                    lambda diag: diag.range['start']['line'] >= len(preceding_context.split('\n')), 
+                    diagnostics[uri]
+                ))
+                error_diags = list(filter(lambda diag: diag.severity == 1, new_diags))
+                if len(error_diags) > 0:
+                    proof_verdicts.append((False, error_diags[0].message))
                 else: 
-                    raise ProofViewError("Error checking proof. Empty file diagnostics.")
-                bar()
+                    # TODO: Better check using vernac Print Assumptions {theorem_name}.
+                    # Somewhy, I am currently unble to retrieve the messages
+                    if 'Abort.' in proof or 'Admitted.' in proof: 
+                        proof_verdicts.append((False, "Proof contains 'Abort.' or 'Admitted.'"))
+                    else: 
+                        proof_verdicts.append((True, None))
+                        post_proc()
+                        self.prog_bar.increase_count()
+                        return proof_verdicts
+            else: 
+                raise ProofViewError("Error checking proof. Empty file diagnostics.")
+            self.prog_bar.increase_count()
         
         post_proc()
         return proof_verdicts
@@ -275,28 +277,30 @@ class ProofView(object):
         but with better performance.
         """
         theorems = []
-        with alive_bar(len(self.ast)) as bar:
-            for i, span in enumerate(self.ast): 
-                try: 
-                    if self.__get_vernacexpr(self.__get_expr(span)) == Vernacexpr.VernacStartTheoremProof: 
-                        thr_name = self.__get_theorem_name(self.__get_expr(span))
-                        thr_statement = self.__get_text_in_range(
-                            self.ast[i].range.start, 
-                            self.ast[i].range.end, 
-                            preserve_line_breaks=True
-                        )
-                        next_expr_vernac = self.__get_vernacexpr(self.__get_expr(self.ast[i + 1]))
-                        if i + 1 >= len(self.ast):
-                            theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
-                        elif next_expr_vernac not in [Vernacexpr.VernacProof, Vernacexpr.VernacAbort, Vernacexpr.VernacEndProof]:
-                            theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
-                        else:
-                            proof = self.__parse_proof(i + 1)
-                            theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, proof))
-                except:
-                    pass
-                
-                bar()
+        self.prog_bar.initialize(len(self.ast))
+        for i, span in enumerate(self.ast): 
+            try: 
+                if self.__get_vernacexpr(self.__get_expr(span)) == Vernacexpr.VernacStartTheoremProof: 
+                    thr_name = self.__get_theorem_name(self.__get_expr(span))
+                    thr_statement = self.__get_text_in_range(
+                        self.ast[i].range.start, 
+                        self.ast[i].range.end, 
+                        preserve_line_breaks=True
+                    )
+                    next_expr_vernac = self.__get_vernacexpr(self.__get_expr(self.ast[i + 1]))
+                    if i + 1 >= len(self.ast):
+                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
+                    elif next_expr_vernac not in [Vernacexpr.VernacProof, Vernacexpr.VernacAbort, Vernacexpr.VernacEndProof]:
+                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, None))
+                    else:
+                        proof = self.__parse_proof(i + 1)
+                        theorems.append(Theorem(thr_name, self.ast[i].range, thr_statement, proof))
+            except:
+                pass
+            
+            self.prog_bar.increase_count()
+        
+        self.prog_bar.finish()
 
         return theorems
 
